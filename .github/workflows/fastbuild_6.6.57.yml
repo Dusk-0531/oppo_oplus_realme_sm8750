@@ -68,6 +68,11 @@ on:
         required: true
         type: boolean
         default: 'true'
+      HYMOFS_enable:
+        description: '是否启用HYMOFS(HymoFS文件系统支持)'
+        required: true
+        type: boolean
+        default: 'false'
       ccache_debug:
         description: '是否上传 Ccache调试日志(用于调试, 无需要不必开启)'
         required: true
@@ -415,6 +420,20 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
+
+      - name: 应用 HYMOFS 补丁
+        if: inputs.HYMOFS_enable
+        run: |
+          cd kernel_workspace/common
+          if [[ ${{ github.event.inputs.susfs_enable }} == 'true' ]]; then
+            wget https://raw.githubusercontent.com/Anatdx/HymoFS/refs/heads/main/patch/hymofs_with_susfs.patch
+            patch -p1 -F 3 < hymofs_with_susfs.patch
+            echo "CONFIG_HYMOFS=y" >> ./arch/arm64/configs/gki_defconfig
+          else
+            wget https://raw.githubusercontent.com/Anatdx/HymoFS/refs/heads/main/patch/hymofs.patch
+            patch -p1 -F 3 < hymofs.patch
+            echo "CONFIG_HYMOFS=y" >> ./arch/arm64/configs/gki_defconfig
+          fi
           
       - name: 添加 KSU & 其他配置项
         run: |
@@ -779,6 +798,7 @@ jobs:
             - 机型：欧加真骁龙8Elite通用 6.6.57 内核（基于一加平板2Pro 6.6.57 版官方OKI源码）
             - 特性：${{ env.KSU_TYPENAME }} + 风驰内核
             - susfs支持：${{ github.event.inputs.susfs_enable }}
+            - HYMOFS支持：${{ github.event.inputs.HYMOFS_enable }}
             - KPM支持 (仅对sukisu生效)：${{ github.event.inputs.kpm_enable }}
             - LZ4支持：${{ github.event.inputs.lz4_enable }}
             - LZ4KD支持：${{ github.event.inputs.lz4kd_enable }}
